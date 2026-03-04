@@ -3,441 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise SCADA - VW Karosáreň</title>
+    <title>SCADA Simulator & Troll Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-base: #050914; --bg-panel: #0d1527; --bg-card: #162238;
-            --text-main: #e2e8f0; --text-muted: #64748b;
-            --primary: #3b82f6; --accent: #0ea5e9;
-            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
-            --border: #1e293b;
+            --bg: #0b1114; --panel: #162026; --text: #e1e1e1;
+            --blue: #00a8ff; --green: #2ed573; --red: #ff4757; --yellow: #ffa502;
         }
-        * { box-sizing: border-box; }
-        body { font-family: 'Consolas', 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-base); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.1s; }
         
-        /* TOP BAR */
-        .topbar { background-color: #020617; border-bottom: 2px solid var(--primary); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 10; }
-        .topbar h1 { margin: 0; font-size: 18px; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
-        .live-indicator { width: 10px; height: 10px; background-color: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 1.5s infinite; }
-        .sys-clock { font-size: 16px; font-weight: bold; color: var(--accent); }
+        /* Špeciálne efekty */
+        body.strobe { animation: strobeEffect 0.2s infinite; }
+        @keyframes strobeEffect { 0% { background: #ff0000; } 50% { background: #000; } 100% { background: #ff0000; } }
+        body.shake { animation: shakeEffect 0.5s infinite; }
+        @keyframes shakeEffect { 0% { transform: translate(2px, 1px) rotate(0deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
 
-        /* MAIN LAYOUT */
-        .main-container { display: flex; flex: 1; overflow: hidden; }
-        
-        /* SIDEBAR / TABS */
-        .sidebar { width: 220px; background-color: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px 0; }
-        .nav-btn { background: none; border: none; border-left: 3px solid transparent; color: var(--text-muted); padding: 15px 20px; text-align: left; font-size: 14px; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
-        .nav-btn:hover { background-color: var(--bg-card); color: var(--text-main); }
-        .nav-btn.active { background-color: var(--bg-card); border-left-color: var(--primary); color: var(--primary); font-weight: bold; }
+        /* Úvodná obrazovka */
+        #boot-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .btn-boot { padding: 20px 40px; font-size: 24px; font-weight: bold; background: var(--blue); color: #fff; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 0 20px rgba(0,168,255,0.5); transition: 0.3s; }
+        .btn-boot:hover { transform: scale(1.1); background: var(--green); }
 
-        /* CONTENT AREA */
-        .content-area { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow-y: auto; gap: 15px; }
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: flex; flex-direction: column; gap: 15px; }
-        
-        /* CARDS & GRIDS */
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background-color: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 15px; position: relative; }
-        .card-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
-        .val-display { font-size: 28px; font-weight: bold; margin: 5px 0; display: flex; align-items: baseline; gap: 5px; }
-        .val-unit { font-size: 12px; font-weight: normal; color: var(--text-muted); }
-        
-        /* LED INDICATORS */
-        .led-panel { display: flex; gap: 10px; margin-top: 10px; }
-        .led { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; background: #1e293b; color: #475569; border: 1px solid #334155; }
-        .led.on-green { background: rgba(16, 185, 129, 0.2); color: var(--success); border-color: var(--success); box-shadow: 0 0 5px rgba(16,185,129,0.3); }
-        .led.on-red { background: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); box-shadow: 0 0 5px rgba(239,68,68,0.3); animation: pulse-red 1s infinite; }
-        
-        /* COMPLEX GAUGE */
-        .svg-gauge { width: 100%; max-height: 180px; }
-        .gauge-bg { fill: none; stroke: var(--bg-card); stroke-width: 15; }
-        .gauge-ok { fill: none; stroke: var(--success); stroke-width: 15; stroke-dasharray: 100 200; stroke-dashoffset: -40; }
-        .gauge-warn { fill: none; stroke: var(--warning); stroke-width: 15; stroke-dasharray: 40 200; stroke-dashoffset: -140; }
-        .gauge-danger { fill: none; stroke: var(--danger); stroke-width: 15; stroke-dasharray: 40 200; stroke-dashoffset: -180; }
-        
-        /* TERMINAL / LOGGER */
-        .terminal { background-color: #000; border: 1px solid #333; border-radius: 4px; padding: 10px; height: 150px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
-        .log-row { margin-bottom: 3px; border-bottom: 1px dashed #222; padding-bottom: 2px; }
-        .log-time { color: var(--text-muted); margin-right: 10px; }
-        .log-info { color: var(--accent); } .log-warn { color: var(--warning); } .log-crit { color: var(--danger); }
+        /* Jump Scare */
+        #jumpscare { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        #jumpscare h1 { color: red; font-size: 150px; margin: 0; text-shadow: 0 0 50px red; animation: shakeEffect 0.1s infinite; }
 
-        /* PROGRESS BARS */
-        .progress-bg { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 5px; }
-        .progress-fill { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease; }
+        /* Layout */
+        .header { border-bottom: 2px solid var(--blue); padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .card { background: var(--panel); padding: 20px; border-radius: 8px; border-top: 4px solid var(--blue); }
+        .val { font-size: 40px; font-weight: bold; margin: 10px 0; }
         
-        /* BUTTONS */
-        .btn { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); padding: 10px 15px; border-radius: 4px; cursor: pointer; font-family: inherit; transition: 0.2s; text-transform: uppercase; font-size: 12px; font-weight: bold; width: 100%; text-align: left; }
-        .btn:hover { background: #1e293b; border-color: var(--primary); }
-        .btn-action { background: rgba(59, 130, 246, 0.1); border-color: var(--primary); color: var(--primary); text-align: center; margin-top: 10px; }
-        .btn-action:hover { background: var(--primary); color: #fff; }
-
-        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Tlačidlá */
+        .btn-panel { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .btn { padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.2); transform: scale(1.02); }
+        .btn-warn { background: var(--yellow); color: #000; }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-troll { background: #8e44ad; color: #fff; border: 2px dashed #fff; }
+        .btn-troll:hover { background: #9b59b6; }
     </style>
 </head>
 <body>
 
-    <div class="topbar">
-        <h1><div class="live-indicator"></div> HMI SCADA - VW TLAČIAREŇ A KAROSÁREŇ</h1>
-        <div class="sys-clock" id="clock">00:00:00</div>
+    <div id="boot-screen">
+        <h2 style="color: #fff; margin-bottom: 30px;">Vitaj v SCADA Simulátore v.2.0</h2>
+        <button class="btn-boot" onclick="bootSystem()">⚡ ZAPNÚŤ SYSTÉM ⚡</button>
+        <p style="color: #666; margin-top: 20px;">(Tento krok je nutný pre aktiváciu zvukových modulov)</p>
     </div>
 
-    <div class="main-container">
-        <div class="sidebar">
-            <button class="nav-btn active" onclick="openTab('tab-main', this)">📊 Hlavný Panel</button>
-            <button class="nav-btn" onclick="openTab('tab-nodes', this)">🏭 Výrobné Uzly</button>
-            <button class="nav-btn" onclick="openTab('tab-energy', this)">⚡ Energetika</button>
-            <button class="nav-btn" onclick="openTab('tab-admin', this)">🛠️ Simulačný Panel</button>
+    <div id="jumpscare">
+        <h1>FATAL ERROR</h1>
+        <h2 style="color: white; font-size: 40px;">ZNIČIL SI CELÚ FABRIKU!</h2>
+    </div>
+
+    <div id="main-ui" style="display: none; height: 100%;">
+        <div class="header">
+            <h1 style="margin: 0; color: var(--blue);">🏭 VW VELÍN - LINKA 01</h1>
+            <div style="font-size: 20px; color: var(--red); font-weight: bold;" id="alarm-text"></div>
         </div>
 
-        <div class="content-area">
-            
-            <div id="tab-main" class="tab-content active">
-                <div class="grid-4">
-                    <div class="card" style="border-top: 3px solid var(--primary);">
-                        <div class="card-title">Hlavný Vzdušník (Tlak)</div>
-                        <div class="val-display" style="color: var(--primary);"><span id="m-press">0</span><span class="val-unit">mBar</span></div>
-                        <div class="progress-bg"><div class="progress-fill" id="bar-press" style="background:var(--primary);"></div></div>
-                    </div>
-                    <div class="card" style="border-top: 3px solid var(--danger);">
-                        <div class="card-title">Celkový Únik (Prierez)</div>
-                        <div class="val-display" style="color: var(--danger);"><span id="m-leak">0.0</span><span class="val-unit">L/min</span></div>
-                        <div class="progress-bg"><div class="progress-fill" id="bar-leak" style="background:var(--danger);"></div></div>
-                    </div>
-                    <div class="card" style="border-top: 3px solid var(--warning);">
-                        <div class="card-title">Aktuálny Výkon Kompresora</div>
-                        <div class="val-display" style="color: var(--warning);"><span id="m-rpm">0</span><span class="val-unit">RPM</span></div>
-                        <div class="led-panel">
-                            <div class="led" id="led-motor">MOTOR RUN</div>
-                            <div class="led" id="led-pid">PID ACTIVE</div>
-                        </div>
-                    </div>
-                    <div class="card" style="border-top: 3px solid var(--success);">
-                        <div class="card-title">Kumulatívna Finančná Strata</div>
-                        <div class="val-display" style="color: var(--success);"><span id="m-cost">0.00</span><span class="val-unit">€</span></div>
-                        <div class="val-unit" style="margin-top:5px;">Sadzba: 0.03 € / m³</div>
-                    </div>
-                </div>
+        <div class="grid-3">
+            <div class="card" style="border-color: var(--blue);">
+                <div style="color: #aaa;">Tlak v systéme</div>
+                <div class="val" id="disp-p" style="color: var(--blue);">7500 <span style="font-size: 16px;">mBar</span></div>
+                <div style="height: 100px;"><canvas id="chart-p"></canvas></div>
+            </div>
+            <div class="card" style="border-color: var(--red);">
+                <div style="color: #aaa;">Celkový únik vzduchu</div>
+                <div class="val" id="disp-l" style="color: var(--red);">5.0 <span style="font-size: 16px;">L/min</span></div>
+                <div style="color: #aaa;">Finančná strata: <strong style="color: var(--green);" id="disp-c">0.00 €</strong></div>
+            </div>
+            <div class="card" style="border-color: var(--yellow);">
+                <div style="color: #aaa;">Stav Kompresora</div>
+                <div class="val" id="disp-rpm" style="color: var(--yellow);">2500 <span style="font-size: 16px;">RPM</span></div>
+                <div style="color: #aaa;">Teplota oleja: <strong id="disp-temp">45.0 °C</strong></div>
+            </div>
+        </div>
 
-                <div class="grid-2">
-                    <div class="card">
-                        <div class="card-title">PID Graf - Regulácia Tlaku a Úniku</div>
-                        <div style="height: 250px;"><canvas id="chart-main"></canvas></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Analógový manometer hlavného potrubia</div>
-                        <div style="text-align: center;">
-                            <svg viewBox="0 0 200 120" class="svg-gauge">
-                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-bg" />
-                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-ok" />
-                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-warn" />
-                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-danger" />
-                                <polygon points="97,100 103,100 100,30" fill="#fff" id="svg-needle" transform="rotate(-90 100 100)"/>
-                                <circle cx="100" cy="100" r="8" fill="#3b82f6"/>
-                                <text x="100" y="115" fill="#64748b" font-size="12" text-anchor="middle" font-weight="bold" id="svg-val">0 mBar</text>
-                            </svg>
-                        </div>
-                    </div>
+        <div class="grid-3">
+            <div class="card" style="grid-column: span 2;">
+                <h3 style="margin-top: 0;">🛠️ Inštruktor: Reálne poruchy</h3>
+                <div class="btn-panel">
+                    <button class="btn btn-warn" onclick="setFault(40, 'Prasknutá hadica na zvárovni!')">🩹 Prasknutá hadica (Malý únik)</button>
+                    <button class="btn btn-danger" onclick="setFault(450, 'KRITICKÝ ÚNIK! Roztrhnuté potrubie!')">💥 Roztrhnuté potrubie (Veľký únik)</button>
+                    <button class="btn btn-warn" onclick="overheat()">🔥 Prehriatie kompresora</button>
+                    <button class="btn" style="background: var(--green); color: #fff;" onclick="resetSys()">✅ Opraviť všetko (Reštart)</button>
                 </div>
             </div>
 
-            <div id="tab-nodes" class="tab-content">
-                <div class="grid-3">
-                    <div class="card">
-                        <div class="card-title">Hala 1: ZVÁROVŇA</div>
-                        <div class="val-display"><span id="n1-press">0</span><span class="val-unit">mBar</span></div>
-                        <div class="val-unit" style="color:var(--danger);">Lokálny únik: <span id="n1-leak">0</span> L/min</div>
-                        <div class="led-panel"><div class="led" id="led-n1">VALVE OPEN</div></div>
-                        <button class="btn btn-action" id="btn-fix-n1" style="display:none;" onclick="startRepair(1)">Opraviť ventil (Zvárovňa)</button>
-                        <div class="progress-bg" id="prog-bg-1" style="display:none;"><div class="progress-fill" id="prog-n1" style="background:var(--success);"></div></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Hala 2: LAKOVŇA</div>
-                        <div class="val-display"><span id="n2-press">0</span><span class="val-unit">mBar</span></div>
-                        <div class="val-unit" style="color:var(--danger);">Lokálny únik: <span id="n2-leak">0</span> L/min</div>
-                        <div class="led-panel"><div class="led" id="led-n2">VALVE OPEN</div></div>
-                        <button class="btn btn-action" id="btn-fix-n2" style="display:none;" onclick="startRepair(2)">Opraviť potrubie (Lakovňa)</button>
-                        <div class="progress-bg" id="prog-bg-2" style="display:none;"><div class="progress-fill" id="prog-n2" style="background:var(--success);"></div></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Hala 3: MONTÁŽ</div>
-                        <div class="val-display"><span id="n3-press">0</span><span class="val-unit">mBar</span></div>
-                        <div class="val-unit" style="color:var(--danger);">Lokálny únik: <span id="n3-leak">0</span> L/min</div>
-                        <div class="led-panel"><div class="led" id="led-n3">VALVE OPEN</div></div>
-                        <button class="btn btn-action" id="btn-fix-n3" style="display:none;" onclick="startRepair(3)">Vymeniť regulátor (Montáž)</button>
-                        <div class="progress-bg" id="prog-bg-3" style="display:none;"><div class="progress-fill" id="prog-n3" style="background:var(--success);"></div></div>
-                    </div>
+            <div class="card" style="border-color: #8e44ad; background: #2c0e3d;">
+                <h3 style="margin-top: 0; color: #fff;">🤡 TROLL PANEL (Zábava)</h3>
+                <div class="btn-panel" style="grid-template-columns: 1fr;">
+                    <button class="btn btn-troll" onclick="playSiren()">🚨 Spustiť sirénu vo fabrike</button>
+                    <button class="btn btn-troll" onclick="coffeeMachine()">☕ Pripojiť kávovar na potrubie</button>
+                    <button class="btn" style="background: #000; color: red; border: 2px solid red;" onclick="triggerJumpscare()">💀 NEDOTÝKAŤ SA (Jumpscare)</button>
                 </div>
             </div>
-
-            <div id="tab-energy" class="tab-content">
-                <div class="grid-4">
-                    <div class="card">
-                        <div class="card-title">Príkon kompresora</div>
-                        <div class="val-display" style="color: var(--warning);"><span id="e-kw">0.0</span><span class="val-unit">kW</span></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Teplota Oleja</div>
-                        <div class="val-display"><span id="e-temp">45.0</span><span class="val-unit">°C</span></div>
-                        <div class="progress-bg"><div class="progress-fill" id="bar-temp" style="background:var(--warning);"></div></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Spotrebovaná elektrina</div>
-                        <div class="val-display"><span id="e-kwh">0.00</span><span class="val-unit">kWh</span></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Náklady na Elektrinu</div>
-                        <div class="val-display" style="color: var(--danger);"><span id="e-cost">0.00</span><span class="val-unit">€</span></div>
-                        <div class="val-unit">0.15 € / kWh</div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Záťaž motora v čase (kW)</div>
-                    <div style="height: 250px;"><canvas id="chart-energy"></canvas></div>
-                </div>
-            </div>
-
-            <div id="tab-admin" class="tab-content">
-                <div class="grid-2">
-                    <div class="card">
-                        <div class="card-title">Ovládanie Porúch (Školiaci Modul)</div>
-                        <button class="btn" onclick="triggerEvent('N1_LEAK')" style="margin-bottom:10px;">🩹 Zvárovňa: Prasknutá hadica (Malý únik)</button>
-                        <button class="btn" onclick="triggerEvent('N2_BURST')" style="margin-bottom:10px;">💥 Lakovňa: Roztrhnuté hlavné potrubie (Kritické)</button>
-                        <button class="btn" onclick="triggerEvent('N3_REGULATOR')" style="margin-bottom:10px;">📈 Montáž: Zlyhanie redukčného ventilu (Pretlak)</button>
-                        <button class="btn" onclick="triggerEvent('COMP_OVERHEAT')" style="margin-bottom:10px; border-color:var(--warning);">🔥 Kompresor: Prehriatie oleja nad 110°C</button>
-                        <button class="btn" onclick="triggerEvent('CYBER')" style="margin-bottom:10px; border-color:var(--danger); color:var(--danger);">💻 Ransomware Útok na PLC Controller</button>
-                        <hr style="border-color: #333; margin: 20px 0;">
-                        <button class="btn" onclick="triggerEvent('RESET')" style="background:var(--success); color:#fff; text-align:center;">✅ TVRDÝ REŠTART A OPRAVA VŠETKÉHO</button>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Systémový Terminál (Event Log)</div>
-                        <div class="terminal" id="sys-log">
-                            </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
     <script>
-        // UI Navigation
-        function openTab(tabId, element) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            element.classList.add('active');
-        }
+        // --- PREMENNÉ ---
+        let pressure = 7500, leak = 5, cost = 0, rpm = 2500, temp = 45;
+        let isOverheating = false;
+        let audioCtx;
+        let sirenOscillator = null;
 
-        // --- SYSTEM CONSTANTS & VARIABLES ---
-        const TARGET_PRESSURE = 7500; // Požadovaný tlak mBar
-        const MAX_RPM = 3000;
-        const AIR_COST_M3 = 0.03; // €
-        const ELEC_COST_KWH = 0.15; // €
-
-        // Core State Object
-        let sys = {
-            pid: { kp: 2.5, ki: 0.1, integral: 0, active: true },
-            comp: { rpm: 0, status: 'RUN', kw: 0, kwh: 0, temp: 45.0, tempTarget: 80.0 },
-            mainTank: { pressure: 0, baseLeak: 2 },
-            nodes: [
-                { id: 1, name: 'Zvárovňa', p: 0, leak: 2, status: 'OK', valve: true, repairState: 0 },
-                { id: 2, name: 'Lakovňa', p: 0, leak: 3, status: 'OK', valve: true, repairState: 0 },
-                { id: 3, name: 'Montáž', p: 0, leak: 1, status: 'OK', valve: true, repairState: 0 }
-            ],
-            metrics: { totalLostLiters: 0, airCost: 0, elecCost: 0, isCyber: false }
-        };
-
-        // --- EVENT LOGGER ---
-        function writeLog(msg, type = 'info') {
-            const term = document.getElementById('sys-log');
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
-            let colorCls = type === 'crit' ? 'log-crit' : (type === 'warn' ? 'log-warn' : 'log-info');
-            term.innerHTML += `<div class="log-row"><span class="log-time">[${timeStr}]</span><span class="${colorCls}">${msg}</span></div>`;
-            term.scrollTop = term.scrollHeight; // Auto-scroll
-        }
-        writeLog('SCADA OS Boot Sequence Initiated...', 'info');
-        writeLog('Connecting to PLC S7-1200... OK', 'info');
-        writeLog('Compressor PID controller online.', 'success');
-
-        // --- EVENT TRIGGERS (INSTRUCTOR) ---
-        function triggerEvent(type) {
-            if(type === 'N1_LEAK') { sys.nodes[0].leak = 45; sys.nodes[0].status = 'FAIL'; writeLog('ALARM: Detekovaný únik hadice - Zvárovňa', 'warn'); document.getElementById('btn-fix-n1').style.display='block'; }
-            if(type === 'N2_BURST') { sys.nodes[1].leak = 450; sys.nodes[1].status = 'FAIL'; writeLog('CRITICAL: Roztrhnuté potrubie - Lakovňa!', 'crit'); document.getElementById('btn-fix-n2').style.display='block'; }
-            if(type === 'N3_REGULATOR') { sys.nodes[2].leak = -50; sys.nodes[2].status = 'FAIL'; writeLog('CRITICAL: Zlyhanie redukčného ventilu - Montáž (Pretlak)', 'crit'); document.getElementById('btn-fix-n3').style.display='block'; }
-            if(type === 'COMP_OVERHEAT') { sys.comp.tempTarget = 120; writeLog('WARN: Abnormálny nárast teploty oleja kompresora!', 'warn'); }
-            if(type === 'CYBER') { sys.metrics.isCyber = true; sys.pid.active = false; writeLog('FATAL: NEOPRÁVNENÝ PRÍSTUP! PLC OVERRIDE!', 'crit'); }
-            if(type === 'RESET') {
-                sys.nodes.forEach((n, idx) => { n.leak = Math.random()*2+1; n.status='OK'; n.repairState=0; document.getElementById(`btn-fix-n${idx+1}`).style.display='none'; document.getElementById(`prog-bg-${idx+1}`).style.display='none'; });
-                sys.comp.tempTarget = 80; sys.comp.status = 'RUN'; sys.pid.active = true; sys.metrics.isCyber = false; sys.pid.integral = 0;
-                writeLog('SYSTEM RESET: Všetky poruchy odstránené, PID obnovené.', 'info');
-            }
-        }
-
-        // --- MAINTENANCE MODULE (Repair mechanics) ---
-        function startRepair(nodeId) {
-            let n = sys.nodes[nodeId-1];
-            if(n.status === 'REPAIRING') return;
-            n.status = 'REPAIRING';
-            writeLog(`Údržba zahájila opravu na uzle ${n.name}...`, 'info');
-            document.getElementById(`prog-bg-${nodeId}`).style.display = 'block';
+        // --- INICIALIZÁCIA (Schová boot screen, ukáže UI, zapne Audio) ---
+        function bootSystem() {
+            document.getElementById('boot-screen').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
             
-            let progress = 0;
-            let intId = setInterval(() => {
-                progress += 10;
-                document.getElementById(`prog-n${nodeId}`).style.width = progress + '%';
-                if(progress >= 100) {
-                    clearInterval(intId);
-                    n.status = 'OK'; n.leak = Math.random()*2+1; n.repairState = 0;
-                    document.getElementById(`btn-fix-n${nodeId}`).style.display = 'none';
-                    setTimeout(() => { document.getElementById(`prog-bg-${nodeId}`).style.display = 'none'; document.getElementById(`prog-n${nodeId}`).style.width = '0%'; }, 1000);
-                    writeLog(`Oprava uzla ${n.name} úspešne dokončená.`, 'success');
-                }
-            }, 500);
+            // Povolí zvuky v prehliadači
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            
+            // Zahrá krátky "píp" na potvrdenie
+            playBeep(800, 0.1);
         }
 
-        // --- CHARTS CONFIGURATION (Chart.js) ---
-        Chart.defaults.color = '#64748b'; Chart.defaults.font.family = 'Consolas';
-        const ctxMain = document.getElementById('chart-main').getContext('2d');
-        const chartMain = new Chart(ctxMain, {
-            type: 'line', data: { labels: [], datasets: [
-                { label: 'Tlak (mBar)', borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', yAxisID: 'y', data: [], tension: 0.3, fill: true, pointRadius:0, borderWidth:2 },
-                { label: 'Únik (L/min)', borderColor: '#ef4444', yAxisID: 'y1', data: [], tension: 0.3, pointRadius:0, borderDash: [5,5], borderWidth:2 }
-            ]},
-            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { display: false }, y: { min: 0, max: 10000, grid: { color: '#1e293b' } }, y1: { min: 0, position: 'right', grid: { display: false } } }, plugins: { legend: { display: true } } }
+        // --- ZVUKOVÉ EFEKTY (Web Audio API - nepotrebuje externé súbory) ---
+        function playBeep(freq, duration) {
+            if(!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'square';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playSiren() {
+            if(!audioCtx) return;
+            if(sirenOscillator) return; // Už hrá
+            
+            document.body.classList.add('strobe');
+            document.getElementById('alarm-text').innerText = "🚨 EVAKUÁCIA HALY 🚨";
+            
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            
+            // Efekt kolísania sirény (policajná siréna)
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 1);
+            osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 2);
+            
+            // Loopovanie cez setInterval (simulácia)
+            let isHigh = true;
+            sirenOscillator = setInterval(() => {
+                osc.frequency.linearRampToValueAtTime(isHigh ? 800 : 400, audioCtx.currentTime + 1);
+                isHigh = !isHigh;
+            }, 1000);
+
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.start();
+
+            // Vypne sirénu po 5 sekundách
+            setTimeout(() => {
+                clearInterval(sirenOscillator);
+                sirenOscillator = null;
+                osc.stop();
+                document.body.classList.remove('strobe');
+                document.getElementById('alarm-text').innerText = "";
+            }, 5000);
+        }
+
+        function triggerJumpscare() {
+            if(!audioCtx) return;
+            document.getElementById('main-ui').style.display = 'none';
+            let js = document.getElementById('jumpscare');
+            js.style.display = 'flex';
+            
+            // Desivý zvuk
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(50, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 1.5);
+            gain.gain.setValueAtTime(1, audioCtx.currentTime); // Veľmi nahlas
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 1.5);
+
+            // Po 2 sekundách to vráti späť
+            setTimeout(() => {
+                js.style.display = 'none';
+                document.getElementById('main-ui').style.display = 'block';
+                resetSys();
+            }, 2000);
+        }
+
+        // --- LOGIKA A TLAČIDLÁ ---
+        function setFault(leakVal, msg) {
+            leak = leakVal;
+            document.getElementById('alarm-text').innerText = msg;
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 500);
+            playBeep(300, 0.5);
+        }
+
+        function overheat() {
+            isOverheating = true;
+            document.getElementById('alarm-text').innerText = "🔥 OLEJ KOMPRESORA HORÍ!";
+        }
+
+        function coffeeMachine() {
+            leak += 15;
+            document.getElementById('alarm-text').innerText = "☕ Fero z údržby napojil kávovar na hl. potrubie!";
+            playBeep(600, 0.2);
+            setTimeout(() => playBeep(800, 0.2), 250);
+        }
+
+        function resetSys() {
+            leak = 5; pressure = 7500; temp = 45; isOverheating = false; rpm = 2500;
+            document.getElementById('alarm-text').innerText = "";
+            document.body.classList.remove('strobe');
+            document.body.classList.remove('shake');
+        }
+
+        // --- GRAF (Chart.js) ---
+        let ctx = document.getElementById('chart-p').getContext('2d');
+        let chart = new Chart(ctx, {
+            type: 'line', data: { labels: [], datasets: [{ label: 'Tlak', borderColor: '#00a8ff', data: [], pointRadius: 0, tension: 0.2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display: false} }, scales: { x: {display: false}, y: {min: 0, max: 10000} } }
         });
 
-        const ctxEn = document.getElementById('chart-energy').getContext('2d');
-        const chartEn = new Chart(ctxEn, {
-            type: 'line', data: { labels: [], datasets: [{ label: 'Výkon Motora (kW)', borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)', data: [], tension: 0.3, fill: true, pointRadius:0, borderWidth:2 }]},
-            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { display: false }, y: { min: 0, max: 250, grid: { color: '#1e293b' } } }, plugins: { legend: { display: false } } }
-        });
-
-        // --- CLOCK LOOP ---
+        // --- HLAVNÁ FYZIKÁLNA SLUČKA (Každých 200ms) ---
         setInterval(() => {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
-        }, 1000);
+            // Fyzika tlaku
+            let actualLeak = leak + (Math.random() * 2 - 1);
+            if(actualLeak < 0) actualLeak = 0;
+            
+            let targetP = isOverheating ? 0 : 7500 - (actualLeak * 10);
+            pressure += (targetP - pressure) * 0.1 + (Math.random() * 20 - 10);
+            if(pressure < 0) pressure = 0;
 
-        // --- PHYSICS & LOGIC ENGINE (Runs every 200ms for smoothness) ---
-        setInterval(() => {
-            // 1. Cyber Attack Chaos Override
-            if(sys.metrics.isCyber) { sys.comp.rpm = Math.random() > 0.5 ? MAX_RPM : 0; sys.nodes.forEach(n => n.valve = Math.random() > 0.5); }
+            // Výpočet peňazí (0.03€ za m3)
+            cost += (actualLeak / 60 / 5 / 1000) * 0.03;
 
-            // 2. Total Leaks Calculation
-            let totalOutflow = sys.mainTank.baseLeak;
-            sys.nodes.forEach(n => { if(n.valve) { totalOutflow += n.leak; } });
+            // Teplota a RPM
+            if(isOverheating) { temp += 1.5; rpm = 0; } 
+            else { temp += (45 - temp) * 0.1; rpm = (pressure < 7000) ? 3000 : 2500; }
+            if(rpm === 0) pressure -= 50; // Padá tlak ak motor nejde
 
-            // 3. PID Controller Logic (Simulating VFD Compressor)
-            if(sys.pid.active && sys.comp.status === 'RUN') {
-                let error = TARGET_PRESSURE - sys.mainTank.pressure;
-                sys.pid.integral += error * 0.2; // dt approx
-                // Anti-windup
-                if(sys.pid.integral > 10000) sys.pid.integral = 10000; if(sys.pid.integral < -10000) sys.pid.integral = -10000;
-                
-                let output = (sys.pid.kp * error) + (sys.pid.ki * sys.pid.integral);
-                
-                // Convert PID output to RPM (0 to 3000)
-                sys.comp.rpm = Math.max(0, Math.min(MAX_RPM, output));
+            // Zápis do HTML
+            document.getElementById('disp-p').innerText = pressure.toFixed(0) + " mBar";
+            document.getElementById('disp-l').innerText = actualLeak.toFixed(1) + " L/min";
+            document.getElementById('disp-c').innerText = cost.toFixed(4) + " €";
+            document.getElementById('disp-rpm').innerText = rpm + " RPM";
+            document.getElementById('disp-temp').innerText = temp.toFixed(1) + " °C";
+
+            // Ak padne tlak kriticky nízko, daj varovanie
+            if(pressure < 4000 && !isOverheating && leak > 10) {
+                document.getElementById('disp-p').style.color = 'red';
+            } else {
+                document.getElementById('disp-p').style.color = 'var(--blue)';
             }
 
-            // 4. Thermodynamics & Flow Physics
-            // Flow IN is proportional to RPM. Flow OUT is proportional to leaks.
-            let flowIn = sys.comp.status === 'RUN' ? (sys.comp.rpm / MAX_RPM) * 800 : 0; // max 800 units of pressure per tick
-            
-            // Pressure difference equations
-            sys.mainTank.pressure += (flowIn - totalOutflow * 1.5);
-            // Decay towards atmospheric if no flow
-            if(sys.mainTank.pressure < 0) sys.mainTank.pressure = 0;
-            if(sys.mainTank.pressure > 12000) sys.mainTank.pressure = 12000; // Physical burst limit
-
-            // Nodes follow main tank with slight resistance drop
-            sys.nodes.forEach(n => {
-                let targetNodeP = n.valve ? (sys.mainTank.pressure - (n.leak * 2)) : 0;
-                if(n.leak < 0) targetNodeP = sys.mainTank.pressure + 2000; // Overpressure simulation
-                n.p += (targetNodeP - n.p) * 0.1; // Smooth inertia
-                if(n.p < 0) n.p = 0;
-            });
-
-            // 5. Energy Calculation
-            sys.comp.kw = (sys.comp.rpm / MAX_RPM) * 200 + (Math.random() * 2); // 200kW max motor
-            if(sys.comp.rpm === 0) sys.comp.kw = 0;
-            sys.comp.kwh += (sys.comp.kw / 3600 / 5); // Convert kW to seconds to tick
-            sys.metrics.elecCost = sys.comp.kwh * ELEC_COST_KWH;
-
-            // Temperature Simulation
-            sys.comp.temp += (sys.comp.tempTarget - sys.comp.temp) * 0.01;
-            if(sys.comp.rpm > 2500) sys.comp.tempTarget = 95; else if(sys.comp.rpm > 0) sys.comp.tempTarget = 80; else sys.comp.tempTarget = 40;
-            
-            // Emergency Thermal Shutdown
-            if(sys.comp.temp > 110 && sys.comp.status === 'RUN') {
-                sys.comp.status = 'TRIP'; sys.comp.rpm = 0; sys.pid.active = false;
-                writeLog('CRITICAL: Núdzové odstavenie kompresora! Teplota > 110°C', 'crit');
-            }
-
-            // 6. Cost Calculation (Air)
-            sys.metrics.totalLostLiters += (totalOutflow / 60 / 5);
-            sys.metrics.airCost = (sys.metrics.totalLostLiters / 1000) * AIR_COST_M3;
-
-            // --- UI UPDATES (HTML elements) ---
-            document.getElementById('m-press').innerText = sys.mainTank.pressure.toFixed(0);
-            document.getElementById('m-leak').innerText = totalOutflow.toFixed(1);
-            document.getElementById('m-rpm').innerText = sys.comp.rpm.toFixed(0);
-            document.getElementById('m-cost').innerText = sys.metrics.airCost.toFixed(2);
-            
-            // Progress bars styling
-            document.getElementById('bar-press').style.width = Math.min(100, (sys.mainTank.pressure/10000)*100) + '%';
-            document.getElementById('bar-leak').style.width = Math.min(100, (totalOutflow/500)*100) + '%';
-            
-            // LEDs
-            let ledMotor = document.getElementById('led-motor');
-            if(sys.comp.status === 'RUN' && sys.comp.rpm > 0) { ledMotor.className = 'led on-green'; ledMotor.innerText = 'MOTOR RUN'; }
-            else if(sys.comp.status === 'TRIP') { ledMotor.className = 'led on-red'; ledMotor.innerText = 'THERMAL TRIP'; }
-            else { ledMotor.className = 'led'; ledMotor.innerText = 'MOTOR STOP'; }
-
-            let ledPid = document.getElementById('led-pid');
-            if(sys.pid.active) { ledPid.className = 'led on-green'; ledPid.innerText = 'PID ACTIVE'; } else { ledPid.className = 'led on-red'; ledPid.innerText = 'PID MANUAL/ERR'; }
-
-            // SVG Gauge Animation
-            let angle = (sys.mainTank.pressure / 10000) * 180 - 90;
-            if(angle > 100) angle = 100; if(angle < -90) angle = -90;
-            document.getElementById('svg-needle').setAttribute('transform', `rotate(${angle} 100 100)`);
-            document.getElementById('svg-val').innerText = sys.mainTank.pressure.toFixed(0) + ' mBar';
-
-            // Nodes UI
-            sys.nodes.forEach((n, idx) => {
-                document.getElementById(`n${idx+1}-press`).innerText = n.p.toFixed(0);
-                document.getElementById(`n${idx+1}-leak`).innerText = n.leak.toFixed(1);
-                let led = document.getElementById(`led-n${idx+1}`);
-                if(n.status === 'FAIL') { led.className = 'led on-red'; led.innerText = 'FAULT DETECTED'; }
-                else if(n.valve) { led.className = 'led on-green'; led.innerText = 'VALVE OPEN'; }
-                else { led.className = 'led'; led.innerText = 'VALVE CLOSED'; }
-            });
-
-            // Energy UI
-            document.getElementById('e-kw').innerText = sys.comp.kw.toFixed(1);
-            document.getElementById('e-kwh').innerText = sys.comp.kwh.toFixed(3);
-            document.getElementById('e-temp').innerText = sys.comp.temp.toFixed(1);
-            document.getElementById('bar-temp').style.width = Math.min(100, (sys.comp.temp/120)*100) + '%';
-            if(sys.comp.temp > 100) document.getElementById('bar-temp').style.background = 'var(--danger)'; else document.getElementById('bar-temp').style.background = 'var(--warning)';
-            document.getElementById('e-cost').innerText = sys.metrics.elecCost.toFixed(2);
-
-            // --- UPDATE CHARTS (Only every 5th tick = 1 second for performance) ---
+            // Update grafu (každú sekundu = každý 5. tick)
             if(Math.random() < 0.2) {
-                chartMain.data.labels.push(''); chartMain.data.datasets[0].data.push(sys.mainTank.pressure); chartMain.data.datasets[1].data.push(totalOutflow);
-                if(chartMain.data.labels.length > 40) { chartMain.data.labels.shift(); chartMain.data.datasets[0].data.shift(); chartMain.data.datasets[1].data.shift(); }
-                chartMain.update();
-
-                chartEn.data.labels.push(''); chartEn.data.datasets[0].data.push(sys.comp.kw);
-                if(chartEn.data.labels.length > 40) { chartEn.data.labels.shift(); chartEn.data.datasets[0].data.shift(); }
-                chartEn.update();
+                chart.data.labels.push('');
+                chart.data.datasets[0].data.push(pressure);
+                if(chart.data.labels.length > 30) {
+                    chart.data.labels.shift(); chart.data.datasets[0].data.shift();
+                }
+                chart.update();
             }
+        }, 200);
 
-        }, 200); // 200ms physics loop
     </script>
 </body>
 </html>
