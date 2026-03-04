@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartAir (INTEGRATED SECURE) - Výrobná linka</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #eef2f5; 
+            margin: 0; 
+        }
+        .header { 
+            background-color: #178eb8; /* Farba podobná tvojmu obrázku */
+            color: white; 
+            padding: 15px 20px; 
+            font-size: 22px; 
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .dashboard { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 20px; 
+        }
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            text-align: center; 
+            border-top: 4px solid #178eb8;
+        }
+        .card.alert {
+            border-top: 4px solid #d9534f;
+        }
+        h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .value { 
+            font-size: 42px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            margin: 15px 0; 
+        }
+        .value.warning { color: #d9534f; }
+        .unit { 
+            font-size: 14px; 
+            color: #888; 
+            font-weight: bold;
+        }
+        .info-panel {
+            margin-top: 30px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            color: #555;
+            line-height: 1.6;
+            border-left: 4px solid #f0ad4e;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        SmartAir (INTEGRATED SECURE) - Výrobná linka 1
+    </div>
+
+    <div class="container">
+        <div class="dashboard">
+            <div class="card">
+                <h3>Aktuálny tlak v linke</h3>
+                <div class="value" id="pressure">8000</div>
+                <div class="unit">MB</div>
+            </div>
+
+            <div class="card alert">
+                <h3>Rýchlosť úniku</h3>
+                <div class="value warning" id="leakRate">0.0</div>
+                <div class="unit">Litrov / minútu</div>
+            </div>
+
+            <div class="card alert">
+                <h3>Straty (Rýchlosť)</h3>
+                <div class="value warning" id="costRate">0.00</div>
+                <div class="unit">€ / minútu</div>
+            </div>
+
+            <div class="card alert">
+                <h3>Celková strata od merania</h3>
+                <div class="value warning" id="totalCost">0.00</div>
+                <div class="unit">€</div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <strong>Logika simulácie:</strong> Systém simuluje kompresor nastavený na nominálny tlak ~8000 MB. Únik vzduchu sa postupne náhodne zväčšuje. Čím je únik väčší, tým viac klesá celkový tlak v potrubí. Cena za stratený liter vzduchu je nastavená na 0,05 €.
+        </div>
+    </div>
+
+    <script>
+        // Konštanty a počiatočné hodnoty
+        const basePressure = 8000; // Nominálny tlak v MB
+        let leakRateLPM = 2.5; // Štartovací únik (Litre za minútu)
+        const costPerLiter = 0.05; // Cena v € za liter vzduchu
+        let totalLostLiters = 0; // Celkové počítadlo uniknutých litrov
+
+        // Funkcia, ktorá sa spúšťa každú sekundu (1000 milisekúnd)
+        setInterval(() => {
+            // 1. Simulácia zhoršovania úniku (unik sa náhodne mení a jemne rastie)
+            leakRateLPM += (Math.random() * 0.5 - 0.15); 
+            if(leakRateLPM < 0) leakRateLPM = 0; // Únik nemôže byť záporný
+
+            // 2. Simulácia tlaku (tlak jemne kolíše a klesá, ak je únik príliš veľký)
+            let currentPressure = basePressure - (leakRateLPM * 3.5) + (Math.random() * 12 - 6);
+
+            // 3. Výpočty pre financie a straty
+            let litersPerSecond = leakRateLPM / 60; // Prepočet z minút na sekundy
+            totalLostLiters += litersPerSecond; // Pripočítame to, čo uniklo za túto sekundu
+            
+            let totalCost = totalLostLiters * costPerLiter; // Celková suma
+            let costRatePerMin = leakRateLPM * costPerLiter; // Koľko eur nám uniká každú minútu
+
+            // 4. Aktualizácia hodnôt na webovej stránke
+            document.getElementById('pressure').innerText = currentPressure.toFixed(0);
+            document.getElementById('leakRate').innerText = leakRateLPM.toFixed(1);
+            document.getElementById('costRate').innerText = costRatePerMin.toFixed(2);
+            document.getElementById('totalCost').innerText = totalCost.toFixed(2);
+        }, 1000); // 1000 ms = 1 sekunda
+    </script>
+
+</body>
+</html>
