@@ -50,6 +50,13 @@
         .led.on-green { background: rgba(16, 185, 129, 0.2); color: var(--success); border-color: var(--success); box-shadow: 0 0 5px rgba(16,185,129,0.3); }
         .led.on-red { background: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); box-shadow: 0 0 5px rgba(239,68,68,0.3); animation: pulse-red 1s infinite; }
         
+        /* COMPLEX GAUGE */
+        .svg-gauge { width: 100%; max-height: 180px; }
+        .gauge-bg { fill: none; stroke: var(--bg-card); stroke-width: 15; }
+        .gauge-ok { fill: none; stroke: var(--success); stroke-width: 15; stroke-dasharray: 100 200; stroke-dashoffset: -40; }
+        .gauge-warn { fill: none; stroke: var(--warning); stroke-width: 15; stroke-dasharray: 40 200; stroke-dashoffset: -140; }
+        .gauge-danger { fill: none; stroke: var(--danger); stroke-width: 15; stroke-dasharray: 40 200; stroke-dashoffset: -180; }
+        
         /* TERMINAL / LOGGER */
         .terminal { background-color: #000; border: 1px solid #333; border-radius: 4px; padding: 10px; height: 150px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
         .log-row { margin-bottom: 3px; border-bottom: 1px dashed #222; padding-bottom: 2px; }
@@ -92,16 +99,16 @@
                 <div class="grid-4">
                     <div class="card" style="border-top: 3px solid var(--primary);">
                         <div class="card-title">Hlavný Vzdušník (Tlak)</div>
-                        <div class="val-display" style="color: var(--primary);"><span id="m-press">0.00</span><span class="val-unit">MBar</span></div>
+                        <div class="val-display" style="color: var(--primary);"><span id="m-press">0</span><span class="val-unit">mBar</span></div>
                         <div class="progress-bg"><div class="progress-fill" id="bar-press" style="background:var(--primary);"></div></div>
                     </div>
                     <div class="card" style="border-top: 3px solid var(--danger);">
-                        <div class="card-title">Celkový Únik (Prietok)</div>
+                        <div class="card-title">Celkový Únik (Prierez)</div>
                         <div class="val-display" style="color: var(--danger);"><span id="m-leak">0.0</span><span class="val-unit">L/min</span></div>
                         <div class="progress-bg"><div class="progress-fill" id="bar-leak" style="background:var(--danger);"></div></div>
                     </div>
                     <div class="card" style="border-top: 3px solid var(--warning);">
-                        <div class="card-title">Výkon Kompresora</div>
+                        <div class="card-title">Aktuálny Výkon Kompresora</div>
                         <div class="val-display" style="color: var(--warning);"><span id="m-rpm">0</span><span class="val-unit">RPM</span></div>
                         <div class="led-panel">
                             <div class="led" id="led-motor">MOTOR RUN</div>
@@ -117,32 +124,20 @@
 
                 <div class="grid-2">
                     <div class="card">
-                        <div class="card-title">PID Graf - Vývoj tlaku a únikov</div>
+                        <div class="card-title">PID Graf - Regulácia Tlaku a Úniku</div>
                         <div style="height: 250px;"><canvas id="chart-main"></canvas></div>
                     </div>
                     <div class="card">
-                        <div class="card-title">Presný Manometer Potrubia (0 - 10 MBar)</div>
-                        <div style="text-align: center; padding-top: 10px;">
-                            <svg viewBox="0 0 200 160" class="svg-gauge" style="max-height: 240px; width: 100%;">
-                                <path d="M 20 130 A 80 80 0 0 1 180 130" fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round" />
-                                
-                                <path d="M 20 130 A 80 80 0 0 1 180 130" fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" id="gauge-active" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
-                                
-                                <path d="M 20 130 L 28 130 M 180 130 L 172 130 M 100 50 L 100 58 M 43.4 73.4 L 49 79 M 156.6 73.4 L 151 79" stroke="#475569" stroke-width="2" fill="none"/>
-                                
-                                <text x="15" y="145" fill="#64748b" font-size="10" text-anchor="middle">0</text>
-                                <text x="100" y="42" fill="#64748b" font-size="10" text-anchor="middle">5</text>
-                                <text x="185" y="145" fill="#64748b" font-size="10" text-anchor="middle">10</text>
-                                
-                                <g id="svg-needle" transform="rotate(-90 100 130)">
-                                    <polygon points="98,130 102,130 100,55" fill="rgba(0,0,0,0.5)" transform="translate(2, 2)"/>
-                                    <polygon points="98,130 102,130 100,55" fill="#e2e8f0" />
-                                </g>
-                                
-                                <circle cx="100" cy="130" r="10" fill="#0f172a" stroke="#3b82f6" stroke-width="2"/>
-                                <circle cx="100" cy="130" r="3" fill="#3b82f6" />
-                                
-                                <text x="100" y="160" fill="#fff" font-size="18" text-anchor="middle" font-weight="bold" id="svg-val" style="letter-spacing: 1px;">0.00 MBar</text>
+                        <div class="card-title">Analógový manometer hlavného potrubia</div>
+                        <div style="text-align: center;">
+                            <svg viewBox="0 0 200 120" class="svg-gauge">
+                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-bg" />
+                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-ok" />
+                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-warn" />
+                                <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-danger" />
+                                <polygon points="97,100 103,100 100,30" fill="#fff" id="svg-needle" transform="rotate(-90 100 100)"/>
+                                <circle cx="100" cy="100" r="8" fill="#3b82f6"/>
+                                <text x="100" y="115" fill="#64748b" font-size="12" text-anchor="middle" font-weight="bold" id="svg-val">0 mBar</text>
                             </svg>
                         </div>
                     </div>
@@ -153,7 +148,7 @@
                 <div class="grid-3">
                     <div class="card">
                         <div class="card-title">Hala 1: ZVÁROVŇA</div>
-                        <div class="val-display"><span id="n1-press">0.00</span><span class="val-unit">MBar</span></div>
+                        <div class="val-display"><span id="n1-press">0</span><span class="val-unit">mBar</span></div>
                         <div class="val-unit" style="color:var(--danger);">Lokálny únik: <span id="n1-leak">0</span> L/min</div>
                         <div class="led-panel"><div class="led" id="led-n1">VALVE OPEN</div></div>
                         <button class="btn btn-action" id="btn-fix-n1" style="display:none;" onclick="startRepair(1)">Opraviť ventil (Zvárovňa)</button>
@@ -161,7 +156,7 @@
                     </div>
                     <div class="card">
                         <div class="card-title">Hala 2: LAKOVŇA</div>
-                        <div class="val-display"><span id="n2-press">0.00</span><span class="val-unit">MBar</span></div>
+                        <div class="val-display"><span id="n2-press">0</span><span class="val-unit">mBar</span></div>
                         <div class="val-unit" style="color:var(--danger);">Lokálny únik: <span id="n2-leak">0</span> L/min</div>
                         <div class="led-panel"><div class="led" id="led-n2">VALVE OPEN</div></div>
                         <button class="btn btn-action" id="btn-fix-n2" style="display:none;" onclick="startRepair(2)">Opraviť potrubie (Lakovňa)</button>
@@ -169,7 +164,7 @@
                     </div>
                     <div class="card">
                         <div class="card-title">Hala 3: MONTÁŽ</div>
-                        <div class="val-display"><span id="n3-press">0.00</span><span class="val-unit">MBar</span></div>
+                        <div class="val-display"><span id="n3-press">0</span><span class="val-unit">mBar</span></div>
                         <div class="val-unit" style="color:var(--danger);">Lokálny únik: <span id="n3-leak">0</span> L/min</div>
                         <div class="led-panel"><div class="led" id="led-n3">VALVE OPEN</div></div>
                         <button class="btn btn-action" id="btn-fix-n3" style="display:none;" onclick="startRepair(3)">Vymeniť regulátor (Montáž)</button>
@@ -219,7 +214,8 @@
                     </div>
                     <div class="card">
                         <div class="card-title">Systémový Terminál (Event Log)</div>
-                        <div class="terminal" id="sys-log"></div>
+                        <div class="terminal" id="sys-log">
+                            </div>
                     </div>
                 </div>
             </div>
@@ -228,6 +224,7 @@
     </div>
 
     <script>
+        // UI Navigation
         function openTab(tabId, element) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -235,11 +232,13 @@
             element.classList.add('active');
         }
 
-        const TARGET_PRESSURE = 7500; 
+        // --- SYSTEM CONSTANTS & VARIABLES ---
+        const TARGET_PRESSURE = 7500; // Požadovaný tlak mBar
         const MAX_RPM = 3000;
-        const AIR_COST_M3 = 0.03; 
-        const ELEC_COST_KWH = 0.15; 
+        const AIR_COST_M3 = 0.03; // €
+        const ELEC_COST_KWH = 0.15; // €
 
+        // Core State Object
         let sys = {
             pid: { kp: 2.5, ki: 0.1, integral: 0, active: true },
             comp: { rpm: 0, status: 'RUN', kw: 0, kwh: 0, temp: 45.0, tempTarget: 80.0 },
@@ -252,18 +251,20 @@
             metrics: { totalLostLiters: 0, airCost: 0, elecCost: 0, isCyber: false }
         };
 
+        // --- EVENT LOGGER ---
         function writeLog(msg, type = 'info') {
             const term = document.getElementById('sys-log');
             const now = new Date();
             const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
             let colorCls = type === 'crit' ? 'log-crit' : (type === 'warn' ? 'log-warn' : 'log-info');
             term.innerHTML += `<div class="log-row"><span class="log-time">[${timeStr}]</span><span class="${colorCls}">${msg}</span></div>`;
-            term.scrollTop = term.scrollHeight; 
+            term.scrollTop = term.scrollHeight; // Auto-scroll
         }
         writeLog('SCADA OS Boot Sequence Initiated...', 'info');
-        writeLog('Loading High-Performance Minimalist UI...', 'info');
+        writeLog('Connecting to PLC S7-1200... OK', 'info');
         writeLog('Compressor PID controller online.', 'success');
 
+        // --- EVENT TRIGGERS (INSTRUCTOR) ---
         function triggerEvent(type) {
             if(type === 'N1_LEAK') { sys.nodes[0].leak = 45; sys.nodes[0].status = 'FAIL'; writeLog('ALARM: Detekovaný únik hadice - Zvárovňa', 'warn'); document.getElementById('btn-fix-n1').style.display='block'; }
             if(type === 'N2_BURST') { sys.nodes[1].leak = 450; sys.nodes[1].status = 'FAIL'; writeLog('CRITICAL: Roztrhnuté potrubie - Lakovňa!', 'crit'); document.getElementById('btn-fix-n2').style.display='block'; }
@@ -273,17 +274,170 @@
             if(type === 'RESET') {
                 sys.nodes.forEach((n, idx) => { n.leak = Math.random()*2+1; n.status='OK'; n.repairState=0; document.getElementById(`btn-fix-n${idx+1}`).style.display='none'; document.getElementById(`prog-bg-${idx+1}`).style.display='none'; });
                 sys.comp.tempTarget = 80; sys.comp.status = 'RUN'; sys.pid.active = true; sys.metrics.isCyber = false; sys.pid.integral = 0;
-                writeLog('SYSTEM RESET: Všetky poruchy odstránené.', 'info');
+                writeLog('SYSTEM RESET: Všetky poruchy odstránené, PID obnovené.', 'info');
             }
         }
 
+        // --- MAINTENANCE MODULE (Repair mechanics) ---
         function startRepair(nodeId) {
             let n = sys.nodes[nodeId-1];
             if(n.status === 'REPAIRING') return;
             n.status = 'REPAIRING';
             writeLog(`Údržba zahájila opravu na uzle ${n.name}...`, 'info');
             document.getElementById(`prog-bg-${nodeId}`).style.display = 'block';
+            
             let progress = 0;
             let intId = setInterval(() => {
                 progress += 10;
-                document.getElementById(`prog-n${nodeId}`).style.width = progress
+                document.getElementById(`prog-n${nodeId}`).style.width = progress + '%';
+                if(progress >= 100) {
+                    clearInterval(intId);
+                    n.status = 'OK'; n.leak = Math.random()*2+1; n.repairState = 0;
+                    document.getElementById(`btn-fix-n${nodeId}`).style.display = 'none';
+                    setTimeout(() => { document.getElementById(`prog-bg-${nodeId}`).style.display = 'none'; document.getElementById(`prog-n${nodeId}`).style.width = '0%'; }, 1000);
+                    writeLog(`Oprava uzla ${n.name} úspešne dokončená.`, 'success');
+                }
+            }, 500);
+        }
+
+        // --- CHARTS CONFIGURATION (Chart.js) ---
+        Chart.defaults.color = '#64748b'; Chart.defaults.font.family = 'Consolas';
+        const ctxMain = document.getElementById('chart-main').getContext('2d');
+        const chartMain = new Chart(ctxMain, {
+            type: 'line', data: { labels: [], datasets: [
+                { label: 'Tlak (mBar)', borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', yAxisID: 'y', data: [], tension: 0.3, fill: true, pointRadius:0, borderWidth:2 },
+                { label: 'Únik (L/min)', borderColor: '#ef4444', yAxisID: 'y1', data: [], tension: 0.3, pointRadius:0, borderDash: [5,5], borderWidth:2 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { display: false }, y: { min: 0, max: 10000, grid: { color: '#1e293b' } }, y1: { min: 0, position: 'right', grid: { display: false } } }, plugins: { legend: { display: true } } }
+        });
+
+        const ctxEn = document.getElementById('chart-energy').getContext('2d');
+        const chartEn = new Chart(ctxEn, {
+            type: 'line', data: { labels: [], datasets: [{ label: 'Výkon Motora (kW)', borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)', data: [], tension: 0.3, fill: true, pointRadius:0, borderWidth:2 }]},
+            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { display: false }, y: { min: 0, max: 250, grid: { color: '#1e293b' } } }, plugins: { legend: { display: false } } }
+        });
+
+        // --- CLOCK LOOP ---
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+        }, 1000);
+
+        // --- PHYSICS & LOGIC ENGINE (Runs every 200ms for smoothness) ---
+        setInterval(() => {
+            // 1. Cyber Attack Chaos Override
+            if(sys.metrics.isCyber) { sys.comp.rpm = Math.random() > 0.5 ? MAX_RPM : 0; sys.nodes.forEach(n => n.valve = Math.random() > 0.5); }
+
+            // 2. Total Leaks Calculation
+            let totalOutflow = sys.mainTank.baseLeak;
+            sys.nodes.forEach(n => { if(n.valve) { totalOutflow += n.leak; } });
+
+            // 3. PID Controller Logic (Simulating VFD Compressor)
+            if(sys.pid.active && sys.comp.status === 'RUN') {
+                let error = TARGET_PRESSURE - sys.mainTank.pressure;
+                sys.pid.integral += error * 0.2; // dt approx
+                // Anti-windup
+                if(sys.pid.integral > 10000) sys.pid.integral = 10000; if(sys.pid.integral < -10000) sys.pid.integral = -10000;
+                
+                let output = (sys.pid.kp * error) + (sys.pid.ki * sys.pid.integral);
+                
+                // Convert PID output to RPM (0 to 3000)
+                sys.comp.rpm = Math.max(0, Math.min(MAX_RPM, output));
+            }
+
+            // 4. Thermodynamics & Flow Physics
+            // Flow IN is proportional to RPM. Flow OUT is proportional to leaks.
+            let flowIn = sys.comp.status === 'RUN' ? (sys.comp.rpm / MAX_RPM) * 800 : 0; // max 800 units of pressure per tick
+            
+            // Pressure difference equations
+            sys.mainTank.pressure += (flowIn - totalOutflow * 1.5);
+            // Decay towards atmospheric if no flow
+            if(sys.mainTank.pressure < 0) sys.mainTank.pressure = 0;
+            if(sys.mainTank.pressure > 12000) sys.mainTank.pressure = 12000; // Physical burst limit
+
+            // Nodes follow main tank with slight resistance drop
+            sys.nodes.forEach(n => {
+                let targetNodeP = n.valve ? (sys.mainTank.pressure - (n.leak * 2)) : 0;
+                if(n.leak < 0) targetNodeP = sys.mainTank.pressure + 2000; // Overpressure simulation
+                n.p += (targetNodeP - n.p) * 0.1; // Smooth inertia
+                if(n.p < 0) n.p = 0;
+            });
+
+            // 5. Energy Calculation
+            sys.comp.kw = (sys.comp.rpm / MAX_RPM) * 200 + (Math.random() * 2); // 200kW max motor
+            if(sys.comp.rpm === 0) sys.comp.kw = 0;
+            sys.comp.kwh += (sys.comp.kw / 3600 / 5); // Convert kW to seconds to tick
+            sys.metrics.elecCost = sys.comp.kwh * ELEC_COST_KWH;
+
+            // Temperature Simulation
+            sys.comp.temp += (sys.comp.tempTarget - sys.comp.temp) * 0.01;
+            if(sys.comp.rpm > 2500) sys.comp.tempTarget = 95; else if(sys.comp.rpm > 0) sys.comp.tempTarget = 80; else sys.comp.tempTarget = 40;
+            
+            // Emergency Thermal Shutdown
+            if(sys.comp.temp > 110 && sys.comp.status === 'RUN') {
+                sys.comp.status = 'TRIP'; sys.comp.rpm = 0; sys.pid.active = false;
+                writeLog('CRITICAL: Núdzové odstavenie kompresora! Teplota > 110°C', 'crit');
+            }
+
+            // 6. Cost Calculation (Air)
+            sys.metrics.totalLostLiters += (totalOutflow / 60 / 5);
+            sys.metrics.airCost = (sys.metrics.totalLostLiters / 1000) * AIR_COST_M3;
+
+            // --- UI UPDATES (HTML elements) ---
+            document.getElementById('m-press').innerText = sys.mainTank.pressure.toFixed(0);
+            document.getElementById('m-leak').innerText = totalOutflow.toFixed(1);
+            document.getElementById('m-rpm').innerText = sys.comp.rpm.toFixed(0);
+            document.getElementById('m-cost').innerText = sys.metrics.airCost.toFixed(2);
+            
+            // Progress bars styling
+            document.getElementById('bar-press').style.width = Math.min(100, (sys.mainTank.pressure/10000)*100) + '%';
+            document.getElementById('bar-leak').style.width = Math.min(100, (totalOutflow/500)*100) + '%';
+            
+            // LEDs
+            let ledMotor = document.getElementById('led-motor');
+            if(sys.comp.status === 'RUN' && sys.comp.rpm > 0) { ledMotor.className = 'led on-green'; ledMotor.innerText = 'MOTOR RUN'; }
+            else if(sys.comp.status === 'TRIP') { ledMotor.className = 'led on-red'; ledMotor.innerText = 'THERMAL TRIP'; }
+            else { ledMotor.className = 'led'; ledMotor.innerText = 'MOTOR STOP'; }
+
+            let ledPid = document.getElementById('led-pid');
+            if(sys.pid.active) { ledPid.className = 'led on-green'; ledPid.innerText = 'PID ACTIVE'; } else { ledPid.className = 'led on-red'; ledPid.innerText = 'PID MANUAL/ERR'; }
+
+            // SVG Gauge Animation
+            let angle = (sys.mainTank.pressure / 10000) * 180 - 90;
+            if(angle > 100) angle = 100; if(angle < -90) angle = -90;
+            document.getElementById('svg-needle').setAttribute('transform', `rotate(${angle} 100 100)`);
+            document.getElementById('svg-val').innerText = sys.mainTank.pressure.toFixed(0) + ' mBar';
+
+            // Nodes UI
+            sys.nodes.forEach((n, idx) => {
+                document.getElementById(`n${idx+1}-press`).innerText = n.p.toFixed(0);
+                document.getElementById(`n${idx+1}-leak`).innerText = n.leak.toFixed(1);
+                let led = document.getElementById(`led-n${idx+1}`);
+                if(n.status === 'FAIL') { led.className = 'led on-red'; led.innerText = 'FAULT DETECTED'; }
+                else if(n.valve) { led.className = 'led on-green'; led.innerText = 'VALVE OPEN'; }
+                else { led.className = 'led'; led.innerText = 'VALVE CLOSED'; }
+            });
+
+            // Energy UI
+            document.getElementById('e-kw').innerText = sys.comp.kw.toFixed(1);
+            document.getElementById('e-kwh').innerText = sys.comp.kwh.toFixed(3);
+            document.getElementById('e-temp').innerText = sys.comp.temp.toFixed(1);
+            document.getElementById('bar-temp').style.width = Math.min(100, (sys.comp.temp/120)*100) + '%';
+            if(sys.comp.temp > 100) document.getElementById('bar-temp').style.background = 'var(--danger)'; else document.getElementById('bar-temp').style.background = 'var(--warning)';
+            document.getElementById('e-cost').innerText = sys.metrics.elecCost.toFixed(2);
+
+            // --- UPDATE CHARTS (Only every 5th tick = 1 second for performance) ---
+            if(Math.random() < 0.2) {
+                chartMain.data.labels.push(''); chartMain.data.datasets[0].data.push(sys.mainTank.pressure); chartMain.data.datasets[1].data.push(totalOutflow);
+                if(chartMain.data.labels.length > 40) { chartMain.data.labels.shift(); chartMain.data.datasets[0].data.shift(); chartMain.data.datasets[1].data.shift(); }
+                chartMain.update();
+
+                chartEn.data.labels.push(''); chartEn.data.datasets[0].data.push(sys.comp.kw);
+                if(chartEn.data.labels.length > 40) { chartEn.data.labels.shift(); chartEn.data.datasets[0].data.shift(); }
+                chartEn.update();
+            }
+
+        }, 200); // 200ms physics loop
+    </script>
+</body>
+</html>
