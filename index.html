@@ -3,140 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAir (INTEGRATED SECURE) - Výrobná linka</title>
+    <title>VW Bratislava - SCADA Monitorovanie</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #eef2f5; 
-            margin: 0; 
+        :root {
+            --bg-color: #0b1114;
+            --panel-bg: #162026;
+            --text-main: #e1e1e1;
+            --vw-blue: #001e50;
+            --vw-light: #00b0f0;
+            --alert-red: #ff3333;
+            --money-green: #00d26a;
         }
-        .header { 
-            background-color: #178eb8; /* Farba podobná tvojmu obrázku */
-            color: white; 
-            padding: 15px 20px; 
-            font-size: 22px; 
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            transition: background-color 0.3s;
         }
-        .container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 0 20px;
+        /* Štýl pri kyber útoku */
+        body.attack-mode {
+            animation: redFlash 1s infinite alternate;
         }
-        .dashboard { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-            gap: 20px; 
+        @keyframes redFlash {
+            0% { background-color: #2a0000; }
+            100% { background-color: #500000; }
         }
-        .card { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-            text-align: center; 
-            border-top: 4px solid #178eb8;
+
+        .header {
+            background-color: var(--vw-blue);
+            padding: 20px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 4px solid var(--vw-light);
+            margin-bottom: 30px;
         }
-        .card.alert {
-            border-top: 4px solid #d9534f;
+        .header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        
+        /* Animácia výrobnej linky */
+        .factory-line {
+            background-color: #222; height: 60px; border-radius: 5px;
+            position: relative; overflow: hidden; margin-bottom: 30px;
+            border-bottom: 4px solid #444; border-top: 2px solid #333;
         }
-        h3 {
-            margin-top: 0;
-            color: #555;
-            font-size: 16px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .car {
+            width: 100px; height: 35px; background-color: var(--vw-light);
+            position: absolute; top: 15px; border-radius: 10px 10px 0 0;
+            animation: moveCar 8s linear infinite;
         }
-        .value { 
-            font-size: 42px; 
-            font-weight: bold; 
-            color: #2c3e50; 
-            margin: 15px 0; 
+        .car::before, .car::after {
+            content: ''; position: absolute; bottom: -6px; width: 16px; height: 16px;
+            background: #ddd; border-radius: 50%; border: 2px solid #111;
         }
-        .value.warning { color: #d9534f; }
-        .unit { 
-            font-size: 14px; 
-            color: #888; 
-            font-weight: bold;
+        .car::before { left: 15px; } .car::after { right: 15px; }
+        .car.delay1 { animation-delay: -4s; }
+        @keyframes moveCar {
+            0% { left: -120px; }
+            100% { left: 100%; }
         }
-        .info-panel {
-            margin-top: 30px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            color: #555;
-            line-height: 1.6;
-            border-left: 4px solid #f0ad4e;
+
+        .dashboard {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
         }
+        .card {
+            background-color: var(--panel-bg); padding: 20px; border-radius: 8px;
+            border-left: 5px solid var(--vw-light); text-align: center;
+        }
+        .card.alert { border-left-color: var(--alert-red); }
+        .card.money { border-left-color: var(--money-green); }
+        .value { font-size: 42px; font-weight: bold; margin: 10px 0; }
+        .value.blue { color: var(--vw-light); }
+        .value.red { color: var(--alert-red); }
+        .value.green { color: var(--money-green); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: var(--panel-bg); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: var(--vw-light); }
+        
+        .controls { margin-top: 40px; text-align: center; }
+        .btn-attack {
+            background-color: var(--alert-red); color: white; border: none;
+            padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer;
+            border-radius: 5px; box-shadow: 0 0 15px rgba(255,51,51,0.5);
+            transition: 0.2s;
+        }
+        .btn-attack:hover { transform: scale(1.05); }
+        
+        #sys-status { font-weight: bold; color: var(--money-green); }
+        body.attack-mode #sys-status { color: var(--alert-red); }
     </style>
 </head>
 <body>
 
     <div class="header">
-        SmartAir (INTEGRATED SECURE) - Výrobná linka 1
+        <div>
+            <h1>VW BRATISLAVA - KAROSÁREŇ (Linka 01)</h1>
+            <p>Stav SCADA: <span id="sys-status">NORMÁLNA PREVÁDZKA</span></p>
+        </div>
+        <div style="text-align: right; color: #aaa;">
+            Cena kompresie: 0.03 € / m³<br>
+            Nominálny tlak: 7.5 Bar
+        </div>
     </div>
 
-    <div class="container">
-        <div class="dashboard">
-            <div class="card">
-                <h3>Aktuálny tlak v linke</h3>
-                <div class="value" id="pressure">8000</div>
-                <div class="unit">MB</div>
-            </div>
+    <div class="factory-line">
+        <div class="car"></div>
+        <div class="car delay1"></div>
+    </div>
 
-            <div class="card alert">
-                <h3>Rýchlosť úniku</h3>
-                <div class="value warning" id="leakRate">0.0</div>
-                <div class="unit">Litrov / minútu</div>
-            </div>
-
-            <div class="card alert">
-                <h3>Straty (Rýchlosť)</h3>
-                <div class="value warning" id="costRate">0.00</div>
-                <div class="unit">€ / minútu</div>
-            </div>
-
-            <div class="card alert">
-                <h3>Celková strata od merania</h3>
-                <div class="value warning" id="totalCost">0.00</div>
-                <div class="unit">€</div>
-            </div>
+    <div class="dashboard">
+        <div class="card">
+            <h3>Tlak v potrubí</h3>
+            <div class="value blue" id="pressure">7500</div>
+            <div class="unit">mBar (Milibary)</div>
         </div>
-
-        <div class="info-panel">
-            <strong>Logika simulácie:</strong> Systém simuluje kompresor nastavený na nominálny tlak ~8000 MB. Únik vzduchu sa postupne náhodne zväčšuje. Čím je únik väčší, tým viac klesá celkový tlak v potrubí. Cena za stratený liter vzduchu je nastavená na 0,05 €.
+        <div class="card alert">
+            <h3>Aktuálny únik vzduchu</h3>
+            <div class="value red" id="leakRate">500</div>
+            <div class="unit">Litrov / minútu</div>
         </div>
+        <div class="card money">
+            <h3>Finančná strata (od štartu)</h3>
+            <div class="value green" id="totalCost">0.000</div>
+            <div class="unit">€</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Prognóza</th>
+                <th>Objem strateného vzduchu</th>
+                <th>Finančná strata</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Za 1 hodinu</td><td id="p-vol-h">0 m³</td><td id="p-cost-h" style="color:var(--money-green);">0 €</td></tr>
+            <tr><td>Za 1 mesiac</td><td id="p-vol-m">0 m³</td><td id="p-cost-m" style="color:var(--money-green);">0 €</td></tr>
+            <tr><td>Za 1 rok</td><td id="p-vol-y">0 m³</td><td id="p-cost-y" style="color:var(--alert-red); font-weight:bold;">0 €</td></tr>
+        </tbody>
+    </table>
+
+    <div class="controls">
+        <button class="btn-attack" onclick="toggleCyberAttack()">🚨 SIMULÁCIA: KYBERNETICKÝ ÚTOK NA VENTILY 🚨</button>
+        <p style="color: #666; font-size: 14px; margin-top: 10px;">(Simuluje napadnutie PLC riadenia a otvorenie bezpečnostných ventilov do atmosféry)</p>
     </div>
 
     <script>
-        // Konštanty a počiatočné hodnoty
-        const basePressure = 8000; // Nominálny tlak v MB
-        let leakRateLPM = 2.5; // Štartovací únik (Litre za minútu)
-        const costPerLiter = 0.05; // Cena v € za liter vzduchu
-        let totalLostLiters = 0; // Celkové počítadlo uniknutých litrov
+        // Priemyselné dáta
+        let isAttacked = false;
+        const basePressure = 7500; // 7.5 Bar
+        let currentLeakLPM = 500; // Štandardná chyba (3mm diera)
+        const costPerM3 = 0.03; // 3 centy za kubík (1000L)
+        let totalLostLiters = 0;
 
-        // Funkcia, ktorá sa spúšťa každú sekundu (1000 milisekúnd)
+        // Audio systém pre sirénu (čistý JavaScript, bez sťahovania MP3)
+        let audioCtx;
+        let sirenInterval;
+
+        function toggleCyberAttack() {
+            isAttacked = !isAttacked;
+            document.body.classList.toggle('attack-mode', isAttacked);
+
+            if (isAttacked) {
+                // Útok zapnutý
+                document.getElementById('sys-status').innerText = "KRITICKÁ CHYBA: NEOPRÁVNENÝ PRÍSTUP! VENTILY 100% OTVORENÉ!";
+                currentLeakLPM = 25000; // Obrovský únik
+                
+                // Spustenie sirény
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let highPitch = true;
+                sirenInterval = setInterval(() => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'square';
+                    osc.frequency.value = highPitch ? 800 : 600;
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime); // Hlasitosť
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                    highPitch = !highPitch;
+                }, 500);
+            } else {
+                // Útok vypnutý
+                document.getElementById('sys-status').innerText = "NORMÁLNA PREVÁDZKA";
+                currentLeakLPM = 500;
+                clearInterval(sirenInterval);
+            }
+        }
+
+        function formatNum(num) { return num.toLocaleString('sk-SK', { maximumFractionDigits: 0 }); }
+        function formatMoney(num) { return num.toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+
         setInterval(() => {
-            // 1. Simulácia zhoršovania úniku (unik sa náhodne mení a jemne rastie)
-            leakRateLPM += (Math.random() * 0.5 - 0.15); 
-            if(leakRateLPM < 0) leakRateLPM = 0; // Únik nemôže byť záporný
-
-            // 2. Simulácia tlaku (tlak jemne kolíše a klesá, ak je únik príliš veľký)
-            let currentPressure = basePressure - (leakRateLPM * 3.5) + (Math.random() * 12 - 6);
-
-            // 3. Výpočty pre financie a straty
-            let litersPerSecond = leakRateLPM / 60; // Prepočet z minút na sekundy
-            totalLostLiters += litersPerSecond; // Pripočítame to, čo uniklo za túto sekundu
+            // Logika kolísania
+            let variance = isAttacked ? (Math.random() * 1000 - 500) : (Math.random() * 20 - 10);
+            let activeLeak = currentLeakLPM + variance;
             
-            let totalCost = totalLostLiters * costPerLiter; // Celková suma
-            let costRatePerMin = leakRateLPM * costPerLiter; // Koľko eur nám uniká každú minútu
+            // Tlak drasticky klesne pri útoku
+            let currentPressure = isAttacked ? (2000 + (Math.random() * 100)) : (basePressure - (activeLeak * 0.5) + (Math.random() * 10 - 5));
 
-            // 4. Aktualizácia hodnôt na webovej stránke
+            let litersPerSec = activeLeak / 60;
+            totalLostLiters += litersPerSec;
+            let currentCost = (totalLostLiters / 1000) * costPerM3;
+
+            // Výpočty do tabuľky (v metroch kubických m³)
+            let m3PerHour = (activeLeak * 60) / 1000;
+            let m3PerMonth = m3PerHour * 24 * 30;
+            let m3PerYear = m3PerHour * 24 * 365;
+
+            // Aktualizácia UI
             document.getElementById('pressure').innerText = currentPressure.toFixed(0);
-            document.getElementById('leakRate').innerText = leakRateLPM.toFixed(1);
-            document.getElementById('costRate').innerText = costRatePerMin.toFixed(2);
-            document.getElementById('totalCost').innerText = totalCost.toFixed(2);
-        }, 1000); // 1000 ms = 1 sekunda
-    </script>
+            document.getElementById('leakRate').innerText = activeLeak.toFixed(0);
+            document.getElementById('totalCost').innerText = currentCost.toFixed(3);
 
+            document.getElementById('p-vol-h').innerText = formatNum(m3PerHour) + ' m³';
+            document.getElementById('p-cost-h').innerText = formatMoney(m3PerHour * costPerM3);
+
+            document.getElementById('p-vol-m').innerText = formatNum(m3PerMonth) + ' m³';
+            document.getElementById('p-cost-m').innerText = formatMoney(m3PerMonth * costPerM3);
+
+            document.getElementById('p-vol-y').innerText = formatNum(m3PerYear) + ' m³';
+            document.getElementById('p-cost-y').innerText = formatMoney(m3PerYear * costPerM3);
+
+        }, 1000);
+    </script>
 </body>
 </html>
